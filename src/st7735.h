@@ -16,6 +16,10 @@
 #ifndef __ST7735_H__
 #define __ST7735_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 
 // Define screen resolution and offset
@@ -119,5 +123,9 @@ void tft_fill_rect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint
 /// \param height Height
 /// \param bitmap Bitmap
 void tft_draw_bitmap(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const uint8_t* bitmap);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif  // __ST7735_H__

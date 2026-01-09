@@ -6,20 +6,22 @@
 ///
 /// \date Aug 2023
 ///
+/// \section Arduino
+///  - \author Ewan Parker
+///  - \date Jan 2026
+///
 /// \section References
 ///  - https://github.com/moononournation/Arduino_GFX
 ///  - https://gitee.com/morita/ch32-v003/tree/master/Driver
 ///  - https://github.com/cnlohr/ch32v003fun/tree/master/examples/spi_oled
+///  - https://github.com/AdiHamulic/CH32V003-SPI-DMA---ILI9341/blob/master/src/spi.c
 ///
 /// \copyright Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)
 
 #include "st7735.h"
 
-#ifdef PLATFORMIO  // Use PlatformIO CH32V
-    #include <debug.h>
-#else  // Use ch32fun
-    #include "ch32fun.h"
-#endif
+#include "ch32v00X.h"
+#define GPIO_Speed_50MHz 3
 
 #include "font5x7.h"
 
@@ -44,12 +46,9 @@
     #define END_WRITE()
 #endif
 
-// PlatformIO Compatibility
-#ifdef PLATFORMIO
-    #define CTLR1_SPE_Set      ((uint16_t)0x0040)
-    #define GPIO_CNF_OUT_PP    0x00
-    #define GPIO_CNF_OUT_PP_AF 0x08
-#endif
+#define CTLR1_SPE_Set       ((uint16_t)0x0040)
+#define GPIO_Mode_Out_PP    0x00
+#define GPIO_CNF_OUT_PP_AF  0x08
 
 // ST7735 Datasheet
 // https://www.displayfuture.com/Display/datasheet/controller/ST7735.pdf
@@ -109,29 +108,28 @@ static uint8_t  _buffer[ST7735_WIDTH << 1] = {0};    // DMA buffer, long enough 
 static void SPI_init(void)
 {
     // Enable GPIO Port C and SPI peripheral
-    RCC->APB2PCENR |= RCC_APB2Periph_GPIOC | RCC_APB2Periph_SPI1;
+    RCC->PB2PCENR |= RCC_PB2Periph_GPIOC | RCC_PB2Periph_SPI1;
 
     // PC2 - RESET
     GPIOC->CFGLR &= ~(0xf << (PIN_RESET << 2));
-    GPIOC->CFGLR |= (GPIO_CNF_OUT_PP | GPIO_Speed_50MHz) << (PIN_RESET << 2);
+    GPIOC->CFGLR |= (GPIO_Mode_Out_PP | GPIO_Speed_50MHz) << (PIN_RESET << 2);
 
     // PC3 - DC
     GPIOC->CFGLR &= ~(0xf << (PIN_DC << 2));
-    GPIOC->CFGLR |= (GPIO_CNF_OUT_PP | GPIO_Speed_50MHz) << (PIN_DC << 2);
+    GPIOC->CFGLR |= (GPIO_Mode_Out_PP | GPIO_Speed_50MHz) << (PIN_DC << 2);
 
 #ifndef ST7735_NO_CS
     // PC4 - CS
     GPIOC->CFGLR &= ~(0xf << (PIN_CS << 2));
-    GPIOC->CFGLR |= (GPIO_CNF_OUT_PP | GPIO_Speed_50MHz) << (PIN_CS << 2);
+    GPIOC->CFGLR |= (GPIO_Mode_Out_PP | GPIO_Speed_50MHz) << (PIN_CS << 2);
 #endif
 
-    // PC5 - SCLK
-    GPIOC->CFGLR &= ~(0xf << (SPI_SCLK << 2));
-    GPIOC->CFGLR |= (GPIO_CNF_OUT_PP_AF | GPIO_Speed_50MHz) << (SPI_SCLK << 2);
-
-    // PC6 - MOSI
-    GPIOC->CFGLR &= ~(0xf << (SPI_MOSI << 2));
-    GPIOC->CFGLR |= (GPIO_CNF_OUT_PP_AF | GPIO_Speed_50MHz) << (SPI_MOSI << 2);
+    // Enable PC7(MISO) - Floating input, PC6(MOSI) and PC5(SCK) - Multiplexed push pull output
+    // GPIO max speed - 50Mhz
+    GPIOC->CFGLR = (GPIOC->CFGLR & ~(GPIO_CFGLR_CNF7 | GPIO_CFGLR_CNF6 | GPIO_CFGLR_CNF5 \
+                   | GPIO_CFGLR_MODE6 | GPIO_CFGLR_MODE5)) \
+                   | GPIO_CFGLR_CNF7_0 | GPIO_CFGLR_CNF6_1 | GPIO_CFGLR_CNF5_1 \
+                   | GPIO_CFGLR_MODE6_0 | GPIO_CFGLR_MODE6_1 | GPIO_CFGLR_MODE5_0 | GPIO_CFGLR_MODE5_1;
 
     // Configure SPI
     SPI1->CTLR1 = SPI_CPHA_1Edge             // Bit 0     - Clock PHAse
@@ -147,7 +145,7 @@ static void SPI_init(void)
     SPI1->CTLR1 |= CTLR1_SPE_Set;            // Bit 6     - Enable SPI
 
     // Enable DMA peripheral
-    RCC->AHBPCENR |= RCC_AHBPeriph_DMA1;
+    RCC->HBPCENR |= RCC_HBPeriph_DMA1;
 
     // Config DMA for SPI TX
     DMA1_Channel3->CFGR = DMA_DIR_PeripheralDST          // Bit 4     - Read from memory
@@ -231,15 +229,15 @@ void tft_init(void)
 
     // Reset display
     RESET_LOW();
-    Delay_Ms(ST7735_RST_DELAY);
+    delay(ST7735_RST_DELAY);
     RESET_HIGH();
-    Delay_Ms(ST7735_RST_DELAY);
+    delay(ST7735_RST_DELAY);
 
     START_WRITE();
 
     // Out of sleep mode, no args, w/delay
     write_command_8(ST7735_SLPOUT);
-    Delay_Ms(ST7735_SLPOUT_DELAY);
+    delay(ST7735_SLPOUT_DELAY);
 
     // Set rotation
     write_command_8(ST7735_MADCTL);
@@ -268,7 +266,7 @@ void tft_init(void)
     DATA_MODE();
     SPI_send_DMA(gamma_n, 16, 1);
 
-    Delay_Ms(10);
+    delay(10);
 
     // Invert display
     // write_command_8(ST7735_INVON);
@@ -276,11 +274,11 @@ void tft_init(void)
 
     // Normal display on, no args, w/delay
     write_command_8(ST7735_NORON);
-    Delay_Ms(10);
+    delay(10);
 
     // Main screen turn on, no args, w/delay
     write_command_8(ST7735_DISPON);
-    Delay_Ms(10);
+    delay(10);
 
     END_WRITE();
 }

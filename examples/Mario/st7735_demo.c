@@ -32,12 +32,6 @@
 /// |                | 7 - VDD   | 3V3   | VDD                               |
 /// | PC4            | 8 - CS    |       | SPI CS/SS (Chip/Slave Select)     |
 
-#ifdef PLATFORMIO  // Use PlatformIO CH32V
-    #include <debug.h>
-#else  // Use ch32fun
-    #include "ch32fun.h"
-#endif
-
 #include "st7735.h"
 
 #include <stdint.h>
@@ -633,14 +627,9 @@ animation_frame frames[] = {
     {2, 40, 36, 40, 100, &bitmap_mario_4[0]}, {7, 48, 24, 32, 100, &bitmap_mario_0[0]},
 };
 
-int main(void)
+void setup(void)
 {
-#ifdef PLATFORMIO  // Use PlatformIO CH32V
-    Delay_Init();
-#else  // Use ch32fun
-    SystemInit();
-    Delay_Ms(100);
-#endif
+    delay(100);
 
     tft_init();
 
@@ -678,7 +667,7 @@ int main(void)
         p_frame = &frames[frame];
 
         tft_draw_bitmap(p_frame->pos_x + shift, p_frame->pos_y, p_frame->width, p_frame->height, p_frame->bitmap);
-        Delay_Ms(p_frame->delay);
+        delay(p_frame->delay);
         // TODO: only erase the delta between frames
         tft_fill_rect(p_frame->pos_x + shift, p_frame->pos_y, p_frame->width, p_frame->height, BLACK);
 
@@ -696,4 +685,8 @@ int main(void)
             frame = 0;
         }
     }
+}
+
+void loop(void)
+{
 }

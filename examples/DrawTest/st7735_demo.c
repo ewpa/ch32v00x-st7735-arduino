@@ -32,40 +32,29 @@
 /// |                | 7 - VDD   | 3V3   | VDD                               |
 /// | PC4            | 8 - CS    |       | SPI CS/SS (Chip/Slave Select)     |
 
-#ifdef PLATFORMIO  // Use PlatformIO CH32V
-    #include <debug.h>
-#else  // Use ch32v003fun
-    #include "ch32v003fun.h"
-#endif
-
 #include "st7735.h"
 
 #include <stdint.h>
 
 uint8_t rand8(void);
 
-void popup(const char *msg, uint32_t delay)
+void popup(const char *msg, uint32_t wait)
 {
     for (int i = 1; i < 11; i++)
     {
         tft_fill_rect(110 - (i << 2), 30 - (i << 1), i << 3, i << 2, BLACK);
-        Delay_Ms(10);
+        delay(10);
     }
     tft_set_cursor(83, 26);
 
     tft_print(msg);
 
-    Delay_Ms(delay);
+    delay(wait);
 }
 
-int main(void)
+void setup(void)
 {
-#ifdef PLATFORMIO  // Use PlatformIO CH32V
-    Delay_Init();
-#else  // Use ch32v003fun
-    SystemInit();
-    Delay_Ms(100);
-#endif
+    delay(100);
 
     tft_init();
 
@@ -164,7 +153,7 @@ int main(void)
             tft_set_background_color(bg);
             tft_set_cursor(x + 5, y + 5);
             tft_print("Hello, World!");
-            Delay_Ms(25);
+            delay(25);
 
             x += step_x;
             if (x >= 72)
@@ -178,6 +167,10 @@ int main(void)
             }
         }
     }
+}
+
+void loop(void)
+{
 }
 
 /* White Noise Generator State */
