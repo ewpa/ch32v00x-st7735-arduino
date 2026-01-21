@@ -57,6 +57,7 @@ extern "C" {
 
 /// \brief Initialize ST7735
 void tft_init(void);
+void tft_init_no_dma(void);
 
 /// \brief Set Cursor Position for Print Functions
 /// \param x X coordinate, from left to right.

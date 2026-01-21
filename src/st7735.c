@@ -19,11 +19,13 @@
 /// \copyright Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)
 
 #include "st7735.h"
+#include "Arduino.h"
 
 #include "ch32v00X.h"
 #define GPIO_Speed_50MHz 3
 
 #include "font5x7.h"
+#include <stdbool.h>
 
 // CH32V003 Pin Definitions
 #define PIN_RESET 2  // PC2
@@ -97,6 +99,7 @@
 #define FONT_WIDTH  5  // Font width
 #define FONT_HEIGHT 7  // Font height
 
+static bool     _use_dma                   = true;   // Use DMA for SPI.
 static uint16_t _cursor_x                  = 0;
 static uint16_t _cursor_y                  = 0;      // Cursor position (x, y)
 static uint16_t _color                     = WHITE;  // Color
@@ -156,31 +159,8 @@ static void SPI_init(void)
                           | DMA_MemoryDataSize_Byte      // Bit 10-11 - 8-bit data
                           | DMA_Priority_VeryHigh        // Bit 12-13 - Very high priority
                           | DMA_M2M_Disable;             // Bit 14    - Disable memory to memory mode
+
     DMA1_Channel3->PADDR = (uint32_t)&SPI1->DATAR;
-}
-
-/// \brief Send Data Through SPI via DMA
-/// \param buffer Memory address
-/// \param size Memory size
-/// \param repeat Repeat times
-static void SPI_send_DMA(const uint8_t* buffer, uint16_t size, uint16_t repeat)
-{
-    DMA1_Channel3->MADDR = (uint32_t)buffer;
-    DMA1_Channel3->CNTR  = size;
-    DMA1_Channel3->CFGR |= DMA_CFGR1_EN;  // Turn on channel
-
-    // Circulate the buffer
-    while (repeat--)
-    {
-        // Clear flag, start sending?
-        DMA1->INTFCR = DMA1_FLAG_TC3;
-
-        // Waiting for channel 3 transmission complete
-        while (!(DMA1->INTFR & DMA1_FLAG_TC3))
-            ;
-    }
-
-    DMA1_Channel3->CFGR &= ~DMA_CFGR1_EN;  // Turn off channel
 }
 
 /// \brief Send Data Directly Through SPI
@@ -193,6 +173,43 @@ static void SPI_send(uint8_t data)
     // Waiting for transmission complete
     while (!(SPI1->STATR & SPI_STATR_TXE))
         ;
+}
+
+/// \brief Send Data Through SPI via DMA
+/// \param buffer Memory address
+/// \param size Memory size
+/// \param repeat Repeat times
+static void SPI_send_DMA(const uint8_t* buffer, uint16_t size, uint16_t repeat)
+{
+    if (_use_dma)
+    {
+        DMA1_Channel3->MADDR = (uint32_t)buffer;
+        DMA1_Channel3->CNTR  = size;
+        DMA1_Channel3->CFGR |= DMA_CFGR1_EN;  // Turn on channel
+    }
+
+    // Circulate the buffer
+    while (repeat--)
+    {
+        if (_use_dma)
+        {
+            // Clear flag, start sending?
+            DMA1->INTFCR = DMA1_FLAG_TC3;
+
+            // Waiting for channel 3 transmission complete
+            while (!(DMA1->INTFR & DMA1_FLAG_TC3))
+                ;
+        }
+        else
+        {
+            uint16_t z; for (z=0; z < size; z++) SPI_send(*(buffer+z));
+        }
+    }
+
+    if (_use_dma)
+    {
+        DMA1_Channel3->CFGR &= ~DMA_CFGR1_EN;  // Turn off channel
+    }
 }
 
 /// \brief Send 8-Bit Command
@@ -223,10 +240,9 @@ static void write_data_16(uint16_t data)
 /// \brief Initialize ST7735
 /// \details Initialization sequence from Arduino_GFX
 /// https://github.com/moononournation/Arduino_GFX/blob/master/src/display/Arduino_ST7735.h
-void tft_init(void)
+void tft_init()
 {
     SPI_init();
-
     // Reset display
     RESET_LOW();
     delay(ST7735_RST_DELAY);
@@ -281,6 +297,13 @@ void tft_init(void)
     delay(10);
 
     END_WRITE();
+}
+
+/// \brief Disable DMA and initialize ST7735
+void tft_init_no_dma()
+{
+    _use_dma = false;
+    tft_init();
 }
 
 /// \brief Set Cursor Position for Print Functions
