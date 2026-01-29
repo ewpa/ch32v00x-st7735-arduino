@@ -31,6 +31,11 @@ extern "C" {
 // Note: To not use CS, uncomment the following line and pull CS to ground.
 //  #define ST7735_NO_CS
 
+// Screen rotation
+#ifndef ST7735_ORIENTATION
+#define ST7735_ORIENTATION 0
+#endif
+
 #define RGB565(r, g, b) ((((r)&0xF8) << 8) | (((g)&0xFC) << 3) | ((b) >> 3))
 #define BGR565(r, g, b) ((((b)&0xF8) << 8) | (((g)&0xFC) << 3) | ((r) >> 3))
 #define RGB             RGB565

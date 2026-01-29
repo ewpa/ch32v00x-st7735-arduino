@@ -257,10 +257,17 @@ void tft_init()
 
     // Set rotation
     write_command_8(ST7735_MADCTL);
-    write_data_8(ST7735_MADCTL_MY | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 0 - Horizontal
-    // write_data_8(ST7735_MADCTL_BGR);                                        // 1 - Vertical
-    // write_data_8(ST7735_MADCTL_MX | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 2 - Horizontal
-    // write_data_8(ST7735_MADCTL_MX | ST7735_MADCTL_MY | ST7735_MADCTL_BGR);  // 3 - Vertical
+    #if ST7735_ORIENTATION == 0
+        write_data_8(ST7735_MADCTL_MY | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 0 - Horizontal
+    #elif ST7735_ORIENTATION == 1
+        write_data_8(ST7735_MADCTL_BGR);                                        // 1 - Vertical
+    #elif ST7735_ORIENTATION == 2
+        write_data_8(ST7735_MADCTL_MX | ST7735_MADCTL_MV | ST7735_MADCTL_BGR);  // 2 - Horizontal
+    #elif ST7735_ORIENTATION == 3
+        write_data_8(ST7735_MADCTL_MX | ST7735_MADCTL_MY | ST7735_MADCTL_BGR);  // 3 - Vertical
+    #else
+        #error Define ST7735_ORIENTATION value 0 to 3
+    #endif
 
     // Set Interface Pixel Format - 16-bit/pixel
     write_command_8(ST7735_COLMOD);
