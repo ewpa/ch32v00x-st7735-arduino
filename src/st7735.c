@@ -357,45 +357,82 @@ static void tft_set_window(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1)
 
 /// \brief Print a Character
 /// \param c Character to print
+/// \param scaled Print this Doubled in Width and Height
 /// \details DMA accelerated.
-void tft_print_char(char c)
+void tft_print_char_scaled(char c, bool scaled)
 {
     const unsigned char* start = &font[c + (c << 2)];
 
     uint16_t sz = 0;
     for (uint8_t i = 0; i < FONT_HEIGHT; i++)
     {
-        for (uint8_t j = 0; j < FONT_WIDTH; j++)
+        for (uint8_t k = 0; k <= scaled; k++)
         {
-            if ((*(start + j)) & (0x01 << i))
+            for (uint8_t j = 0; j < FONT_WIDTH; j++)
             {
-                _buffer[sz++] = _color >> 8;
-                _buffer[sz++] = _color;
-            }
-            else
-            {
-                _buffer[sz++] = _bg_color >> 8;
-                _buffer[sz++] = _bg_color;
+                if ((*(start + j)) & (0x01 << i))
+                {
+                    _buffer[sz++] = _color >> 8;
+                    _buffer[sz++] = _color;
+                    if (scaled)
+                    {
+                        _buffer[sz++] = _color >> 8;
+                        _buffer[sz++] = _color;
+                    }
+                }
+                else
+                {
+                    _buffer[sz++] = _bg_color >> 8;
+                    _buffer[sz++] = _bg_color;
+                    if (scaled)
+                    {
+                        _buffer[sz++] = _bg_color >> 8;
+                        _buffer[sz++] = _bg_color;
+                    }
+                }
             }
         }
     }
 
     START_WRITE();
-    tft_set_window(_cursor_x, _cursor_y, _cursor_x + FONT_WIDTH - 1, _cursor_y + FONT_HEIGHT - 1);
+    tft_set_window(_cursor_x, _cursor_y, _cursor_x + (FONT_WIDTH<<scaled) - 1, _cursor_y + (FONT_HEIGHT<<scaled) - 1);
     DATA_MODE();
     SPI_send_DMA(_buffer, sz, 1);
     END_WRITE();
+}
+
+/// \brief Print a Character
+/// \param c Character to print
+/// \details DMA accelerated.
+void tft_print_char(char c)
+{
+    tft_print_char_scaled(c, false);
+}
+
+/// \brief Print a String
+/// \param str String to print
+/// \param scaled Print this Doubled in Width and Height
+void tft_print_scaled(const char* str, bool scaled)
+{
+    while (*str)
+    {
+        tft_print_char_scaled(*str++, scaled);
+        _cursor_x += (FONT_WIDTH<<scaled) + (1<<scaled);
+    }
 }
 
 /// \brief Print a String
 /// \param str String to print
 void tft_print(const char* str)
 {
-    while (*str)
-    {
-        tft_print_char(*str++);
-        _cursor_x += FONT_WIDTH + 1;
-    }
+    tft_print_scaled(str, false);
+}
+
+/// \brief Print a Double-Sized String
+/// \param str String to print
+void tft_print_x2(const char* str)
+{
+    tft_print_scaled(str, true);
 }
 
 /// \brief Print an Integer

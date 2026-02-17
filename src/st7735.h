@@ -85,6 +85,10 @@ void tft_print_char(char c);
 /// \param str String to print
 void tft_print(const char* str);
 
+/// \brief Print a Double-Sized String
+/// \param str String to print
+void tft_print_x2(const char* str);
+
 /// \brief Print an Integer
 /// \param num Number to print
 /// \param width Expected width of the number.
