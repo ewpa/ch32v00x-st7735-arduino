@@ -61,8 +61,9 @@ extern "C" {
 #define PINK        RGB(255, 130, 198)
 
 /// \brief Initialize ST7735
-void tft_init(void);
-void tft_init_no_dma(void);
+// Available pins are 0 to 4 inclusive.
+void tft_init(uint8_t cs=4, uint8_t dc=3, uint8_t res=2);
+void tft_init_no_dma(uint8_t cs=4, uint8_t dc=3, uint8_t res=2);
 
 /// \brief Set Cursor Position for Print Functions
 /// \param x X coordinate, from left to right.

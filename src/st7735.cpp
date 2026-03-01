@@ -28,10 +28,10 @@
 #include <stdbool.h>
 
 // CH32V003 Pin Definitions
-#define PIN_RESET 2  // PC2
-#define PIN_DC    3  // PC3
+static uint8_t PIN_RESET;  // PC2 Default
+static uint8_t PIN_DC;     // PC3 Default
 #ifndef ST7735_NO_CS
-    #define PIN_CS 4  // PC4
+    static uint8_t PIN_CS;  // PC4 Default
 #endif
 #define SPI_SCLK 5  // PC5
 #define SPI_MOSI 6  // PC6
@@ -240,8 +240,9 @@ static void write_data_16(uint16_t data)
 /// \brief Initialize ST7735
 /// \details Initialization sequence from Arduino_GFX
 /// https://github.com/moononournation/Arduino_GFX/blob/master/src/display/Arduino_ST7735.h
-void tft_init()
+void tft_init(uint8_t cs, uint8_t dc, uint8_t res)
 {
+    PIN_CS = cs; PIN_DC = dc; PIN_RESET = res;
     SPI_init();
     // Reset display
     RESET_LOW();
@@ -307,10 +308,10 @@ void tft_init()
 }
 
 /// \brief Disable DMA and initialize ST7735
-void tft_init_no_dma()
+void tft_init_no_dma(uint8_t cs, uint8_t dc, uint8_t res)
 {
     _use_dma = false;
-    tft_init();
+    tft_init(cs, dc, res);
 }
 
 /// \brief Set Cursor Position for Print Functions
