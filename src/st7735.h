@@ -23,10 +23,28 @@ extern "C" {
 #include <stdint.h>
 
 // Define screen resolution and offset
+#ifndef ST7735_CONFIG
+#define ST7735_CONFIG 1
+#endif
+
 #define ST7735_WIDTH    160
 #define ST7735_HEIGHT   80
+
+#if ST7735_CONFIG == 1
+// Common configuration.
 #define ST7735_X_OFFSET 0
 #define ST7735_Y_OFFSET 24
+#define ST7735_INVERSE 0
+
+#elif ST7735_CONFIG == 2
+// Screen inverted and offset by a couple of pixels.
+#define ST7735_X_OFFSET 1
+#define ST7735_Y_OFFSET 26
+#define ST7735_INVERSE 1
+
+#else
+#error Please define ST7735_CONFIG as 1 or 2.
+#endif
 
 // Note: To not use CS, uncomment the following line and pull CS to ground.
 //  #define ST7735_NO_CS
